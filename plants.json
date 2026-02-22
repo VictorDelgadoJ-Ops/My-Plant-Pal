@@ -1,0 +1,23 @@
+[
+    {
+        "name": "Rose Bush",
+        "water": 1,
+        "sun": "High",
+        "image": "",
+        "last_watered": "2026-02-19"
+    },
+    {
+        "name": "Cilantro",
+        "water": 2,
+        "sun": "High",
+        "image": "Picture",
+        "last_watered": "2026-02-19"
+    },
+    {
+        "name": "weeping willow",
+        "water": 2,
+        "sun": "High",
+        "image": "image",
+        "last_watered": "2026-02-19"
+    }
+]
