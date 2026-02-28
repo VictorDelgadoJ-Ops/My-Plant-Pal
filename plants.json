@@ -19,5 +19,12 @@
         "sun": "High",
         "image": "image",
         "last_watered": "2026-02-19"
+    },
+    {
+        "name": "yellow dandelion",
+        "water": 1,
+        "sun": "Low",
+        "image": "C:/Users/javii/OneDrive/Pictures/Screenshots 1/Screenshot 2026-02-24 150547.png",
+        "last_watered": "2026-02-24"
     }
 ]
