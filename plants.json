@@ -4,14 +4,14 @@
         "water": 1,
         "sun": "High",
         "image": "",
-        "last_watered": "2026-02-19"
+        "last_watered": "2026-03-03"
     },
     {
         "name": "Cilantro",
         "water": 2,
         "sun": "High",
         "image": "Picture",
-        "last_watered": "2026-02-19"
+        "last_watered": "2026-03-03"
     },
     {
         "name": "weeping willow",
@@ -21,10 +21,10 @@
         "last_watered": "2026-02-19"
     },
     {
-        "name": "yellow dandelion",
+        "name": "Purple Lily",
         "water": 1,
         "sun": "Low",
-        "image": "C:/Users/javii/OneDrive/Pictures/Screenshots 1/Screenshot 2026-02-24 150547.png",
-        "last_watered": "2026-02-24"
+        "image": "C:/Users/javii/OneDrive/Pictures/Screenshots 1/Screenshot 2026-03-03 153219.png",
+        "last_watered": "2026-03-03"
     }
 ]

@@ -1,3 +1,9 @@
+"""
+My Plant Pal - A modern plant care tracker with a sleek UI, built using Tkinter.
+|================================================================================|
+Author: Victor Delgado | GitHub: https://github.com/VictorDelgadoJ-Ops/My-Plant-Pal
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from PIL import Image, ImageTk
@@ -27,13 +33,11 @@ DARK_THEME = {
 
 THEME = DARK_THEME.copy()
 
-
 def load_icon(filename, size):
     path = os.path.join("images", filename)
     if not os.path.exists(path):
         return None
     return ImageTk.PhotoImage(Image.open(path).resize(size, Image.LANCZOS))
-
 
 class MyPlantPal:
     def __init__(self, root):
@@ -552,7 +556,6 @@ class MyPlantPal:
 
         # Use current search filter
         self.filter_plants()
-
 
 if __name__ == "__main__":
     root = tk.Tk()
