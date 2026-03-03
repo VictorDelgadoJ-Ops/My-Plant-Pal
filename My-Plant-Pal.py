@@ -11,19 +11,21 @@ LIGHT_THEME = {
     "btn": "#8BC34A", "btn_hover": "#7CB342",
     "btn_text": "#FFFFFF", "text": "#333333",
     "accent": "#DCEDC8", "list_bg": "#F0F0F0",
-    "list_fg": "#333333"
+    "list_fg": "#333333", "entry_bg": "#FFFFFF",
+    "entry_fg": "#333333", "input_border": "#CCCCCC"
 }
 
 DARK_THEME = {
-    "bg_main": "#121212", "bg_panel": "#1E1E1E",
-    "header_bg": "#1F2933", "header_text": "#E5E5E5",
-    "btn": "#4CAF50", "btn_hover": "#66BB6A",
-    "btn_text": "#FFFFFF", "text": "#E5E5E5",
-    "accent": "#2E7D32", "list_bg": "#1E1E1E",
-    "list_fg": "#E5E5E5"
+    "bg_main": "#0D0D0D", "bg_panel": "#1A1A1A",
+    "header_bg": "#1F1F1F", "header_text": "#E8E8E8",
+    "btn": "#2E7D32", "btn_hover": "#4CAF50",
+    "btn_text": "#FFFFFF", "text": "#E8E8E8",
+    "accent": "#1B5E20", "list_bg": "#1A1A1A",
+    "list_fg": "#E8E8E8", "entry_bg": "#252525",
+    "entry_fg": "#E8E8E8", "input_border": "#404040"
 }
 
-THEME = LIGHT_THEME.copy()
+THEME = DARK_THEME.copy()
 
 
 def load_icon(filename, size):
@@ -37,12 +39,15 @@ class MyPlantPal:
     def __init__(self, root):
         self.root = root
         self.root.title("My Plant Pal")
-        self.current_theme = "light"
+        self.current_theme = "dark"
 
         self.plants = []
         self.buttons = []
         self.tree_items = []
         self.plant_thumbs = []
+        self.filtered_plants = []  # Track filtered plant indices
+        self.toast_windows = []
+        self.selected_plant_item = None  # Track selected plant for highlighting
 
         # Icons
         self.icon_add = load_icon("add.png", (20, 20))
@@ -71,7 +76,7 @@ class MyPlantPal:
         self.btn_plants = self._header_button("Plants", self.show_plants_page)
         self.btn_plants.pack(side="left", padx=5)
 
-        self.dark_mode_btn = self._header_button("Dark Mode", self.toggle_theme)
+        self.dark_mode_btn = self._header_button("Light Mode", self.toggle_theme)
         self.dark_mode_btn.pack(side="right", padx=10)
 
         # ---------- PAGES ----------
@@ -81,12 +86,14 @@ class MyPlantPal:
         # Show dashboard first
         self.dashboard_frame.pack(fill="both", expand=True)
 
+        # Load data BEFORE building UI pages
+        self.load_plants()
+
         # Build UI pages
         self.build_dashboard()
         self.build_plants_page()
 
-        # Load data AFTER pages exist
-        self.load_plants()
+        # Update list and check reminders
         self.update_list()
         self.check_watering_reminders()
 
@@ -119,6 +126,40 @@ class MyPlantPal:
         self._style_button(btn)
         return btn
 
+    # ---------- TOAST NOTIFICATIONS ----------
+    def show_toast(self, message, duration=3000):
+        """Display a toast notification that auto-closes"""
+        toast = tk.Toplevel(self.root)
+        toast.wm_overrideredirect(True)
+        toast.wm_attributes('-alpha', 0.9)
+        toast.configure(bg=THEME["bg_panel"])
+        
+        # Create a frame with border for card effect
+        frame = tk.Frame(toast, bg=THEME["btn"], highlightthickness=1, highlightbackground=THEME["input_border"])
+        frame.pack(padx=1, pady=1)
+        
+        label = tk.Label(frame, text=message, bg=THEME["btn"], fg=THEME["btn_text"],
+                        font=("Arial", 10), padx=20, pady=10)
+        label.pack()
+        
+        # Position at bottom right
+        toast.update_idletasks()
+        x = self.root.winfo_x() + self.root.winfo_width() - toast.winfo_width() - 20
+        y = self.root.winfo_y() + self.root.winfo_height() - toast.winfo_height() - 20
+        toast.geometry(f"+{x}+{y}")
+        
+        self.toast_windows.append(toast)
+        
+        # Auto-close
+        toast.after(duration, lambda: self._close_toast(toast))
+    
+    def _close_toast(self, toast):
+        try:
+            toast.destroy()
+            self.toast_windows.remove(toast)
+        except:
+            pass
+
     # ---------- THEME ----------
     def toggle_theme(self):
         global THEME
@@ -136,6 +177,8 @@ class MyPlantPal:
         self.root.configure(bg=THEME["bg_main"])
         self.header_frame.configure(bg=THEME["header_bg"])
         self.title_label.configure(bg=THEME["header_bg"], fg=THEME["header_text"])
+        self.dashboard_frame.configure(bg=THEME["bg_main"])
+        self.plants_frame.configure(bg=THEME["bg_main"])
 
         for btn in self.buttons:
             btn.configure(bg=THEME["btn"], fg=THEME["btn_text"])
@@ -174,10 +217,13 @@ class MyPlantPal:
         card_frame.pack(pady=20)
 
         def card(label, value, color):
-            c = tk.Frame(card_frame, bg="white", padx=20, pady=15)
-            c.pack(side="left", padx=10)
-            tk.Label(c, text=value, font=("Arial", 20, "bold"), fg=color, bg="white").pack()
-            tk.Label(c, text=label, font=("Arial", 10), fg="#555", bg="white").pack()
+            # Shadow effect with nested frames
+            shadow = tk.Frame(card_frame, bg=THEME["bg_main"], height=2)
+            c = tk.Frame(shadow, bg=THEME["bg_panel"], padx=20, pady=15, relief="raised", bd=2)
+            c.pack(side="top")
+            shadow.pack(side="left", padx=8, pady=10)
+            tk.Label(c, text=value, font=("Arial", 20, "bold"), fg=color, bg=THEME["bg_panel"]).pack()
+            tk.Label(c, text=label, font=("Arial", 10), fg=THEME["text"], bg=THEME["bg_panel"]).pack()
 
         card("Total Plants", stats["total"], "#2E7D32")
         card("Need Water Today", stats["today"], "#0277BD")
@@ -192,7 +238,8 @@ class MyPlantPal:
                  bg=THEME["bg_main"], fg=THEME["text"]).pack()
 
         canvas = tk.Canvas(bar_frame, width=400, height=30,
-                           bg=THEME["bg_panel"], highlightthickness=0)
+                           bg=THEME["bg_panel"], highlightthickness=1,
+                           highlightbackground=THEME["input_border"])
         canvas.pack(pady=10)
 
         total = max(stats["total"], 1)
@@ -248,8 +295,27 @@ class MyPlantPal:
         )
         self.style.layout("PlantTreeview", [("Treeview.treearea", {"sticky": "nswe"})])
 
+        # Search frame
+        search_frame = tk.Frame(self.plants_frame, bg=THEME["bg_main"])
+        search_frame.pack(fill="x", padx=10, pady=10)
+        
+        tk.Label(search_frame, text="Search Plants:", bg=THEME["bg_main"], fg=THEME["text"]).pack(side="left", padx=5)
+        
+        self.search_var = tk.StringVar()
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var, 
+                               bg=THEME["entry_bg"], fg=THEME["entry_fg"],
+                               insertbackground=THEME["entry_fg"], width=30)
+        search_entry.pack(side="left", padx=5)
+        search_entry.bind("<KeyRelease>", lambda e: self.filter_plants())
+
         self.plant_tree = ttk.Treeview(self.plants_frame, style="PlantTreeview", show="tree")
         self.plant_tree.pack(fill="both", expand=True, pady=5)
+        
+        # Bind hover effects
+        self.plant_tree.bind("<Motion>", self._on_treeview_hover)
+        self.plant_tree.bind("<Leave>", self._on_treeview_leave)
+        self.plant_tree.bind("<Button-1>", self._on_treeview_click)
+        self.last_hovered_item = None
 
         btns = tk.Frame(self.plants_frame, bg=THEME["bg_main"])
         btns.pack(pady=10)
@@ -259,6 +325,76 @@ class MyPlantPal:
         self._create_button(btns, "Delete", self.delete_plant, self.icon_delete).grid(row=0, column=2, padx=5)
 
         self._create_button(self.plants_frame, "Save Plants", self.save_plants).pack(pady=5)
+
+    def filter_plants(self):
+        """Filter plants based on search query"""
+        query = self.search_var.get().lower()
+        
+        # Clear treeview
+        for item in self.plant_tree.get_children():
+            self.plant_tree.delete(item)
+        
+        self.tree_items = []
+        self.plant_thumbs = []
+        self.filtered_plants = []
+        self.selected_plant_item = None  # Clear selection when filtering
+        
+        # Add filtered plants
+        for idx, p in enumerate(self.plants):
+            if query == "" or query in p["name"].lower():
+                img_path = p.get("image")
+                photo = None
+                
+                if img_path and os.path.exists(img_path):
+                    try:
+                        img = Image.open(img_path).resize((40, 40), Image.LANCZOS)
+                        photo = ImageTk.PhotoImage(img)
+                    except:
+                        photo = None
+                
+                if photo is None and self.icon_default is not None:
+                    photo = self.icon_default
+                
+                self.plant_thumbs.append(photo)
+                
+                if photo is not None:
+                    item_id = self.plant_tree.insert("", "end", text=p["name"], image=photo)
+                else:
+                    item_id = self.plant_tree.insert("", "end", text=p["name"])
+                
+                self.tree_items.append(item_id)
+                self.filtered_plants.append(idx)
+    
+    def _on_treeview_hover(self, event):
+        """Handle treeview hover effects"""
+        item = self.plant_tree.identify("item", event.x, event.y)
+        if item != self.last_hovered_item:
+            if self.last_hovered_item and self.last_hovered_item != self.selected_plant_item:
+                self.plant_tree.item(self.last_hovered_item, tags=())
+            if item and item != self.selected_plant_item:
+                self.plant_tree.item(item, tags=("hover",))
+                self.plant_tree.tag_configure("hover", background="#2E7D32")
+            self.last_hovered_item = item
+    
+    def _on_treeview_leave(self, event):
+        """Remove hover effect when leaving treeview"""
+        if self.last_hovered_item and self.last_hovered_item != self.selected_plant_item:
+            self.plant_tree.item(self.last_hovered_item, tags=())
+            self.last_hovered_item = None
+    
+    def _on_treeview_click(self, event):
+        """Handle plant selection with dark yellow highlight"""
+        item = self.plant_tree.identify("item", event.x, event.y)
+        
+        # Remove highlight from previously selected item
+        if self.selected_plant_item and self.selected_plant_item != item:
+            self.plant_tree.item(self.selected_plant_item, tags=())
+        
+        # Highlight clicked item in dark yellow
+        if item:
+            self.plant_tree.item(item, tags=("selected",))
+            self.plant_tree.tag_configure("selected", background="#B8860B")
+            self.selected_plant_item = item
 
     # ---------- ADD PLANT ----------
     def add_plant_window(self):
@@ -272,22 +408,27 @@ class MyPlantPal:
             )
 
         label("Plant Name:", 0)
-        name_entry = tk.Entry(win)
+        name_entry = tk.Entry(win, bg=THEME["entry_bg"], fg=THEME["entry_fg"],
+                              insertbackground=THEME["entry_fg"])
         name_entry.grid(row=0, column=1, pady=5, padx=5)
 
         label("Water Every (days):", 1)
-        water_entry = tk.Entry(win)
+        water_entry = tk.Entry(win, bg=THEME["entry_bg"], fg=THEME["entry_fg"],
+                               insertbackground=THEME["entry_fg"])
         water_entry.grid(row=1, column=1, pady=5, padx=5)
 
         label("Sunlight Level:", 2)
         sunlight_var = tk.StringVar(value="Medium")
         sun_menu = tk.OptionMenu(win, sunlight_var, "Low", "Medium", "High")
-        sun_menu.configure(bg=THEME["bg_panel"], fg=THEME["text"])
+        sun_menu.configure(bg=THEME["btn"], fg=THEME["btn_text"],
+                          activebackground=THEME["btn_hover"],
+                          activeforeground=THEME["btn_text"])
         sun_menu.grid(row=2, column=1, pady=5, padx=5, sticky="w")
 
         label("Image (optional):", 3)
         img_path_var = tk.StringVar()
-        tk.Entry(win, textvariable=img_path_var).grid(row=3, column=1, pady=5, padx=5)
+        tk.Entry(win, textvariable=img_path_var, bg=THEME["entry_bg"],
+                fg=THEME["entry_fg"], insertbackground=THEME["entry_fg"]).grid(row=3, column=1, pady=5, padx=5)
 
         def browse_img():
             path = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.jpg;*.jpeg")])
@@ -303,10 +444,10 @@ class MyPlantPal:
             img = img_path_var.get().strip()
 
             if not name:
-                messagebox.showerror("Error", "Please enter a plant name.")
+                self.show_toast("Please enter a plant name.")
                 return
             if not water.isdigit():
-                messagebox.showerror("Error", "Watering frequency must be a number.")
+                self.show_toast("Watering frequency must be a number.")
                 return
 
             self.plants.append({
@@ -318,6 +459,7 @@ class MyPlantPal:
             })
             self.update_list()
             self.build_dashboard()
+            self.show_toast(f"{name} added successfully!")
             win.destroy()
 
         self._create_button(win, "Save Plant", save).grid(row=4, column=0, columnspan=3, pady=10)
@@ -328,11 +470,11 @@ class MyPlantPal:
             return
         selected = self.plant_tree.selection()
         if not selected:
-            messagebox.showwarning("Warning", "Pick a plant first.")
+            self.show_toast("Pick a plant first.")
             return
 
         index = self.tree_items.index(selected[0])
-        plant = self.plants[index]
+        plant = self.plants[self.filtered_plants[index]]
 
         win = tk.Toplevel(self.root)
         win.title("Plant Details")
@@ -355,7 +497,7 @@ class MyPlantPal:
 
         def mark_as_watered():
             plant["last_watered"] = datetime.now().strftime("%Y-%m-%d")
-            messagebox.showinfo("Updated", f"{plant['name']} marked as watered today.")
+            self.show_toast(f"{plant['name']} marked as watered!")
             win.destroy()
             self.update_list()
             self.build_dashboard()
@@ -369,18 +511,20 @@ class MyPlantPal:
             return
         selected = self.plant_tree.selection()
         if not selected:
-            messagebox.showwarning("Warning", "Select a plant to delete.")
+            self.show_toast("Select a plant to delete.")
             return
         index = self.tree_items.index(selected[0])
-        del self.plants[index]
+        deleted_name = self.plants[self.filtered_plants[index]]["name"]
+        del self.plants[self.filtered_plants[index]]
         self.update_list()
         self.build_dashboard()
+        self.show_toast(f"{deleted_name} deleted!")
 
     # ---------- SAVE / LOAD ----------
     def save_plants(self):
         with open("plants.json", "w") as f:
             json.dump(self.plants, f, indent=4)
-        messagebox.showinfo("Saved", "Plants saved successfully.")
+        self.show_toast("Plants saved successfully!")
 
     def load_plants(self):
         if os.path.exists("plants.json"):
@@ -397,10 +541,8 @@ class MyPlantPal:
             if today >= due:
                 reminders.append(plant["name"])
         if reminders:
-            messagebox.showinfo(
-                "Watering Reminder",
-                "These plants need water:\n\n" + "\n".join(reminders)
-            )
+            message = "Plants need water: " + ", ".join(reminders)
+            self.show_toast(message, duration=5000)
 
     # ---------- UPDATE LIST ----------
     def update_list(self):
@@ -408,36 +550,8 @@ class MyPlantPal:
         if not hasattr(self, "plant_tree") or self.plant_tree is None:
             return
 
-        for item in self.plant_tree.get_children():
-            self.plant_tree.delete(item)
-
-        self.tree_items = []
-        self.plant_thumbs = []
-
-        for p in self.plants:
-            img_path = p.get("image")
-            photo = None
-
-            if img_path and os.path.exists(img_path):
-                try:
-                    img = Image.open(img_path).resize((40, 40), Image.LANCZOS)
-                    photo = ImageTk.PhotoImage(img)
-                except:
-                    photo = None
-
-            # If no image loaded, try default icon
-            if photo is None and self.icon_default is not None:
-                photo = self.icon_default
-
-            self.plant_thumbs.append(photo)
-
-            if photo is not None:
-                item_id = self.plant_tree.insert("", "end", text=p["name"], image=photo)
-            else:
-                # No valid image at all: insert without image
-                item_id = self.plant_tree.insert("", "end", text=p["name"])
-
-            self.tree_items.append(item_id)
+        # Use current search filter
+        self.filter_plants()
 
 
 if __name__ == "__main__":
