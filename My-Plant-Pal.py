@@ -11,6 +11,7 @@ import json, os
 from datetime import datetime, timedelta
 
 # ---------- THEMES ----------
+# Light theme color palette with bright, neutral colors
 LIGHT_THEME = {
     "bg_main": "#FAFAFA", "bg_panel": "#F0F0F0",
     "header_bg": "#E0E0E0", "header_text": "#333333",
@@ -21,6 +22,7 @@ LIGHT_THEME = {
     "entry_fg": "#333333", "input_border": "#CCCCCC"
 }
 
+# Dark theme color palette with dark backgrounds and light text for better night visibility
 DARK_THEME = {
     "bg_main": "#0D0D0D", "bg_panel": "#1A1A1A",
     "header_bg": "#1F1F1F", "header_text": "#E8E8E8",
@@ -31,12 +33,14 @@ DARK_THEME = {
     "entry_fg": "#E8E8E8", "input_border": "#404040"
 }
 
+# Global theme variable that can be switched at runtime
 THEME = DARK_THEME.copy()
 
+# Load image icons and resize them for consistent UI appearance
 def load_icon(filename, size):
     path = os.path.join("images", filename)
     if not os.path.exists(path):
-        return None
+        return None  # Return None if icon file not found
     return ImageTk.PhotoImage(Image.open(path).resize(size, Image.LANCZOS))
 
 class MyPlantPal:
@@ -45,20 +49,21 @@ class MyPlantPal:
         self.root.title("My Plant Pal")
         self.current_theme = "dark"
 
-        self.plants = []
-        self.buttons = []
-        self.tree_items = []
-        self.plant_thumbs = []
-        self.filtered_plants = []  # Track filtered plant indices
-        self.toast_windows = []
-        self.selected_plant_item = None  # Track selected plant for highlighting
+        # Initialize data structures for storing plant information and UI state
+        self.plants = []  # List of all plant dictionaries
+        self.buttons = []  # Track all buttons for theme updates
+        self.tree_items = []  # Tree item IDs for each displayed plant
+        self.plant_thumbs = []  # Plant thumbnail images for treeview
+        self.filtered_plants = []  # Track filtered plant indices from search
+        self.toast_windows = []  # Track open toast notification windows
+        self.selected_plant_item = None  # Current selected plant item for highlighting
 
-        # Icons
+        # Load icons for UI buttons and plant thumbnails
         self.icon_add = load_icon("add.png", (20, 20))
         self.icon_delete = load_icon("delete.png", (20, 20))
         self.icon_leaf = load_icon("leaf.png", (20, 20))
         self.icon_water = load_icon("water.png", (20, 20))
-        self.icon_default = load_icon("default.png", (40, 40))
+        self.icon_default = load_icon("default.png", (40, 40))  # Fallback icon if plant image missing
 
         self.root.configure(bg=THEME["bg_main"])
 
@@ -84,20 +89,21 @@ class MyPlantPal:
         self.dark_mode_btn.pack(side="right", padx=10)
 
         # ---------- PAGES ----------
+        # Create frame containers for dashboard and plants pages
         self.dashboard_frame = tk.Frame(self.root, bg=THEME["bg_main"])
         self.plants_frame = tk.Frame(self.root, bg=THEME["bg_main"])
 
         # Show dashboard first
         self.dashboard_frame.pack(fill="both", expand=True)
 
-        # Load data BEFORE building UI pages
+        # Load plant data from JSON file before rendering UI
         self.load_plants()
 
-        # Build UI pages
+        # Build UI page components
         self.build_dashboard()
         self.build_plants_page()
 
-        # Update list and check reminders
+        # Refresh plant list display and show any pending watering reminders
         self.update_list()
         self.check_watering_reminders()
 
@@ -132,7 +138,7 @@ class MyPlantPal:
 
     # ---------- TOAST NOTIFICATIONS ----------
     def show_toast(self, message, duration=3000):
-        """Display a toast notification that auto-closes"""
+        """Display a toast notification that auto-closes after specified duration (ms)"""
         toast = tk.Toplevel(self.root)
         toast.wm_overrideredirect(True)
         toast.wm_attributes('-alpha', 0.9)
@@ -166,24 +172,27 @@ class MyPlantPal:
 
     # ---------- THEME ----------
     def toggle_theme(self):
+        """Switch between light and dark themes and refresh all UI elements"""
         global THEME
         if self.current_theme == "light":
-            THEME.update(DARK_THEME)
+            THEME.update(DARK_THEME)  # Switch to dark theme
             self.current_theme = "dark"
             self.dark_mode_btn.config(text="Light Mode")
         else:
-            THEME.update(LIGHT_THEME)
+            THEME.update(LIGHT_THEME)  # Switch to light theme
             self.current_theme = "light"
             self.dark_mode_btn.config(text="Dark Mode")
-        self.apply_theme()
+        self.apply_theme()  # Reapply all colors to UI components
 
     def apply_theme(self):
+        """Apply current theme colors to all UI components"""
         self.root.configure(bg=THEME["bg_main"])
         self.header_frame.configure(bg=THEME["header_bg"])
         self.title_label.configure(bg=THEME["header_bg"], fg=THEME["header_text"])
         self.dashboard_frame.configure(bg=THEME["bg_main"])
         self.plants_frame.configure(bg=THEME["bg_main"])
 
+        # Update all buttons with new theme colors
         for btn in self.buttons:
             btn.configure(bg=THEME["btn"], fg=THEME["btn_text"])
 
@@ -267,19 +276,21 @@ class MyPlantPal:
 
     # ---------- STATS ----------
     def get_stats(self):
+        """Calculate plant health statistics for dashboard display"""
         today = datetime.now().date()
         total = len(self.plants)
         today_due = overdue = healthy = 0
 
+        # Categorize each plant based on watering schedule
         for p in self.plants:
             last = datetime.strptime(p["last_watered"], "%Y-%m-%d").date()
-            due = last + timedelta(days=p["water"])
+            due = last + timedelta(days=p["water"])  # Calculate next watering date
             if today > due:
-                overdue += 1
+                overdue += 1  # Plant needs water urgently
             elif today == due:
-                today_due += 1
+                today_due += 1  # Plant needs water today
             else:
-                healthy += 1
+                healthy += 1  # Plant is fine, not due yet
 
         return {"total": total, "today": today_due, "overdue": overdue, "healthy": healthy}
 
@@ -331,31 +342,34 @@ class MyPlantPal:
         self._create_button(self.plants_frame, "Save Plants", self.save_plants).pack(pady=5)
 
     def filter_plants(self):
-        """Filter plants based on search query"""
+        """Filter and display plants based on search query"""
         query = self.search_var.get().lower()
         
-        # Clear treeview
+        # Clear current treeview display
         for item in self.plant_tree.get_children():
             self.plant_tree.delete(item)
         
+        # Reset tracking lists
         self.tree_items = []
         self.plant_thumbs = []
         self.filtered_plants = []
         self.selected_plant_item = None  # Clear selection when filtering
         
-        # Add filtered plants
+        # Add only plants matching the search query
         for idx, p in enumerate(self.plants):
             if query == "" or query in p["name"].lower():
                 img_path = p.get("image")
                 photo = None
                 
+                # Try to load plant's custom image
                 if img_path and os.path.exists(img_path):
                     try:
                         img = Image.open(img_path).resize((40, 40), Image.LANCZOS)
                         photo = ImageTk.PhotoImage(img)
                     except:
-                        photo = None
+                        photo = None  # Fallback if image fails to load
                 
+                # Use default icon if no custom image available
                 if photo is None and self.icon_default is not None:
                     photo = self.icon_default
                 
@@ -442,24 +456,28 @@ class MyPlantPal:
         self._create_button(win, "Browse", browse_img).grid(row=3, column=2, padx=5)
 
         def save():
+            # Get form input values
             name = name_entry.get().strip()
             water = water_entry.get().strip()
             sun = sunlight_var.get()
             img = img_path_var.get().strip()
 
+            # Validate plant name is not empty
             if not name:
                 self.show_toast("Please enter a plant name.")
                 return
+            # Validate watering frequency is a valid number
             if not water.isdigit():
                 self.show_toast("Watering frequency must be a number.")
                 return
 
+            # Add new plant to database with metadata
             self.plants.append({
                 "name": name,
                 "water": int(water),
                 "sun": sun,
                 "image": img,
-                "last_watered": datetime.now().strftime("%Y-%m-%d")
+                "last_watered": datetime.now().strftime("%Y-%m-%d")  # Initialize with today's date
             })
             self.update_list()
             self.build_dashboard()
@@ -526,35 +544,39 @@ class MyPlantPal:
 
     # ---------- SAVE / LOAD ----------
     def save_plants(self):
+        """Persist all plant data to JSON file for recovery on app restart"""
         with open("plants.json", "w") as f:
-            json.dump(self.plants, f, indent=4)
+            json.dump(self.plants, f, indent=4)  # Pretty-print JSON for readability
         self.show_toast("Plants saved successfully!")
 
     def load_plants(self):
+        """Load plant data from JSON file at app startup"""
         if os.path.exists("plants.json"):
             with open("plants.json", "r") as f:
-                self.plants = json.load(f)
+                self.plants = json.load(f)  # Load plant list from persistent storage
 
     # ---------- REMINDERS ----------
     def check_watering_reminders(self):
+        """Check for plants that need watering and show alert"""
         today = datetime.now().date()
         reminders = []
         for plant in self.plants:
             last = datetime.strptime(plant["last_watered"], "%Y-%m-%d").date()
-            due = last + timedelta(days=plant["water"])
-            if today >= due:
+            due = last + timedelta(days=plant["water"])  # Calculate when plant is due
+            if today >= due:  # If today is on or past the due date
                 reminders.append(plant["name"])
         if reminders:
             message = "Plants need water: " + ", ".join(reminders)
-            self.show_toast(message, duration=5000)
+            self.show_toast(message, duration=5000)  # Show longer notification for reminders
 
     # ---------- UPDATE LIST ----------
     def update_list(self):
-        # Prevent crash if TreeView isn't built yet
+        """Refresh the plant list display with current search filter applied"""
+        # Guard against calling before treeview is initialized
         if not hasattr(self, "plant_tree") or self.plant_tree is None:
             return
 
-        # Use current search filter
+        # Reapply search filter to update displayed plants
         self.filter_plants()
 
 if __name__ == "__main__":
